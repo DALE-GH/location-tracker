@@ -1,0 +1,209 @@
+<!-- 
+═══════════════════════════════════════════════════════════════════
+  PROJECT: Location Tracker for Invasive Plants & Litter
+  FILE: index.html
+  DESCRIPTION: Main HTML structure for the tracking application
+  
+  FEATURES:
+  - Mobile-first responsive design
+  - Desktop developer mode with advanced controls
+  - Real-time GPS tracking
+  - Database sync with offline fallback
+═══════════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Location Tracker</title>
+    
+    <!-- Leaflet CSS for mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HEADER SECTION
+         Shows app title, statistics, and menu controls
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="header">
+        <h1>📍 Location Tracker</h1>
+        <div class="stats">
+            <div class="stat">🌿 <span id="plantCount">0</span></div>
+            <div class="stat">🗑️ <span id="litterCount">0</span></div>
+            <div class="stat" id="syncStatus">
+                <span id="syncIndicator">●</span> <span id="syncText">Local</span>
+            </div>
+        </div>
+        <button class="menu-btn" onclick="app.toggleSidebar()">List</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MAP CONTAINER
+         Full-screen interactive map powered by Leaflet
+    ════════════════════════════════════════════════════════════════════ -->
+    <div id="map"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MOBILE CONTROL BUTTONS
+         Quick-access buttons for adding locations (visible on mobile)
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="controls" id="mobileControls">
+        <button class="btn btn-plant" onclick="app.openNoteModal('plant')">
+            🌿 Invasive Plant
+        </button>
+        <button class="btn btn-litter" onclick="app.openNoteModal('litter')">
+            🗑️ Litter
+        </button>
+        <button class="btn btn-location" onclick="app.centerOnLocation()" id="locationBtn">
+            📍
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DEVELOPER PANEL (Desktop Only)
+         Advanced controls for testing and development
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="dev-panel" id="devPanel">
+        <div class="dev-header">
+            <h2>🔧 Developer Controls</h2>
+            <button class="collapse-btn" onclick="app.toggleDevPanel()">−</button>
+        </div>
+        
+        <div class="dev-content" id="devContent">
+            <!-- Database Connection Section -->
+            <div class="dev-section">
+                <h3>Database Connection</h3>
+                <div class="input-group">
+                    <label>Server URL:</label>
+                    <input type="text" id="dbServerUrl" value="http://localhost:3000" placeholder="http://your-server.com">
+                </div>
+                <div class="input-group">
+                    <label>API Key (optional):</label>
+                    <input type="password" id="apiKey" placeholder="Enter API key">
+                </div>
+                <button class="dev-btn" onclick="app.testConnection()">Test Connection</button>
+                <button class="dev-btn" onclick="app.syncNow()">Force Sync</button>
+                <div class="status-message" id="connectionStatus"></div>
+            </div>
+
+            <!-- Quick Add Section -->
+            <div class="dev-section">
+                <h3>Quick Add Location</h3>
+                <div class="input-group">
+                    <label>Type:</label>
+                    <select id="devType">
+                        <option value="plant">Invasive Plant</option>
+                        <option value="litter">Litter</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Latitude:</label>
+                    <input type="number" id="devLat" step="0.000001" placeholder="38.8408">
+                </div>
+                <div class="input-group">
+                    <label>Longitude:</label>
+                    <input type="number" id="devLng" step="0.000001" placeholder="-77.1831">
+                </div>
+                <div class="input-group">
+                    <label>Note:</label>
+                    <textarea id="devNote" rows="2" placeholder="Enter details..."></textarea>
+                </div>
+                <button class="dev-btn" onclick="app.devAddLocation()">Add Location</button>
+            </div>
+
+            <!-- Data Management Section -->
+            <div class="dev-section">
+                <h3>Data Management</h3>
+                <button class="dev-btn" onclick="app.exportData()">Export JSON</button>
+                <button class="dev-btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
+                <input type="file" id="importFile" accept=".json" style="display:none" onchange="app.importData(this.files[0])">
+                <button class="dev-btn dev-btn-danger" onclick="app.clearAllData()">Clear All Data</button>
+                <div class="info-text">
+                    <strong>Total Locations:</strong> <span id="totalCount">0</span><br>
+                    <strong>Synced:</strong> <span id="syncedCount">0</span><br>
+                    <strong>Pending:</strong> <span id="pendingCount">0</span>
+                </div>
+            </div>
+
+            <!-- Debug Log Section -->
+            <div class="dev-section">
+                <h3>Debug Log</h3>
+                <div class="debug-log" id="debugLog">
+                    <div class="log-entry">System initialized</div>
+                </div>
+                <button class="dev-btn" onclick="app.clearLog()">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SIDEBAR - Location List
+         Displays all saved locations with filtering options
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="sidebar" id="sidebar">
+        <button class="close-btn" onclick="app.toggleSidebar()">✕</button>
+        <h2 style="margin-bottom: 20px;">Saved Locations</h2>
+        
+        <!-- Filter Controls -->
+        <div class="filter-controls">
+            <button class="filter-btn active" data-filter="all" onclick="app.filterLocations('all')">
+                All
+            </button>
+            <button class="filter-btn" data-filter="plant" onclick="app.filterLocations('plant')">
+                🌿 Plants
+            </button>
+            <button class="filter-btn" data-filter="litter" onclick="app.filterLocations('litter')">
+                🗑️ Litter
+            </button>
+        </div>
+        
+        <div id="locationList"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MODAL - Add Note
+         Modal dialog for entering location notes
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Add Note</h2>
+            <textarea id="noteInput" placeholder="Enter details about what you found..."></textarea>
+            <div class="modal-actions">
+                <button class="cancel-btn" onclick="app.closeNoteModal()">Cancel</button>
+                <button class="save-btn" onclick="app.saveLocation()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LOADING INDICATOR
+         Shows when fetching location or syncing data
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span id="loadingText">Getting location...</span>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TOAST NOTIFICATIONS
+         Shows temporary messages to the user
+    ════════════════════════════════════════════════════════════════════ -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         JAVASCRIPT LIBRARIES
+    ════════════════════════════════════════════════════════════════════ -->
+    <!-- Leaflet JS for mapping -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
