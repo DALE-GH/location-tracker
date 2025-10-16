@@ -1,4 +1,4 @@
-# 🚀 Location Tracker - Setup guide
+# 🚀 Location Tracker
 
 ## 📋 Table of Contents
 1. [Quick Start (5 Minutes)](#quick-start)
